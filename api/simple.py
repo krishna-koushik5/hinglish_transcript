@@ -20,6 +20,7 @@ async def root():
         <h1>🎵 Hinglish Transcription Service</h1>
         <p>This is a debug version to test Vercel deployment.</p>
         <p>If you can see this, the basic deployment is working!</p>
+        <p>Updated: This should trigger a new deployment.</p>
     </body>
     </html>
     """
