@@ -1,23 +1,18 @@
 {
-    "version": 2,
-    "builds": [
-        {
-            "src": "api/vercel_handler.py",
-            "use": "@vercel/python"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "api/vercel_handler.py"
-        }
-    ],
-    "env": {
-        "PYTHON_VERSION": "3.11"
-    },
-    "functions": {
-        "api/vercel_handler.py": {
-            "maxDuration": 300
-        }
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/vercel_handler.py",
+      "use": "@vercel/python"
     }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/vercel_handler.py"
+    }
+  ],
+  "env": {
+    "PYTHON_VERSION": "3.11"
+  }
 }
