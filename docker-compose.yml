@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  hinglish-service:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-your-google-gemini-api-key}
+      - MAX_CHUNK_DURATION=${MAX_CHUNK_DURATION:-600}
+    volumes:
+      - ./temp_audio:/app/temp_audio
+      - ./.env:/app/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

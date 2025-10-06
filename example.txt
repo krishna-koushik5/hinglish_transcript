@@ -1,0 +1,11 @@
+# Google Cloud Configuration
+GCS_BUCKET=hinglish-service-audios
+GCP_PROJECT_ID=your-project-id
+GOOGLE_API_KEY=your-google-api-key-here
+
+# Redis/Valkey Configuration  
+VALKEY_URL=redis://valkey:6379/0
+
+# Worker Configuration
+WORKER_CONCURRENCY=5
+MAX_CHUNK_DURATION=600

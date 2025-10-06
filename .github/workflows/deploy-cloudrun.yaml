@@ -1,0 +1,106 @@
+# .github/workflows/deploy-cloudrun.yaml
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install --only=dev
+        
+    - name: Run basic tests
+      run: |
+        # Add basic syntax checking
+        python -m py_compile api/main.py api/worker.py
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker
+
+    - name: Deploy with Cloud Build
+      run: |
+        gcloud builds submit --config cloudbuild.yaml .
+
+    - name: Get service URLs
+      id: get-urls
+      run: |
+        API_URL=$(gcloud run services describe hinglish-api --region=$REGION --format='value(status.url)' 2>/dev/null || echo "Not deployed")
+        echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+
+    - name: Test deployment
+      run: |
+        API_URL="${{ steps.get-urls.outputs.api_url }}"
+        if [ "$API_URL" != "Not deployed" ]; then
+          echo "Testing health endpoint..."
+          curl -f "$API_URL/health" || exit 1
+          echo "✅ Deployment test passed"
+        else
+          echo "❌ API not deployed"
+          exit 1
+        fi
+
+    - name: Comment PR with deployment info
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const apiUrl = '${{ steps.get-urls.outputs.api_url }}';
+          const comment = `## 🚀 Deployment Preview
+          
+          Your changes have been deployed to Cloud Run:
+          
+          - **API**: ${apiUrl}
+          - **Health Check**: ${apiUrl}/health
+          - **API Docs**: ${apiUrl}/docs
+          
+          Test the API:
+          \`\`\`bash
+          curl ${apiUrl}/health
+          \`\`\`
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
